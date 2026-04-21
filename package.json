@@ -9,18 +9,21 @@
     "lesson:2": "tsx src/02-langchain-tool-calling.ts",
     "lesson:3": "tsx src/03-langsmith-observability.ts",
     "homework": "tsx src/04-homework.ts",
+    "server": "tsx src/server.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@langchain/core": "^0.3.30",
     "@langchain/openai": "^0.3.14",
     "dotenv": "^16.4.5",
+    "express": "^4.21.1",
     "langchain": "^0.3.7",
     "langsmith": "^0.2.10",
     "openai": "^4.73.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
