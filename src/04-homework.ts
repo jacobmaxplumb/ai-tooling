@@ -1,25 +1,12 @@
 /**
- * Lesson 4: Homework.
+ * Lesson 4: Homework — reference solution.
  *
- * Build three tools and wire them to the LLM. The model should pick the
- * right one based on the user's question.
+ * Three tools bound to an LLM. The model picks the right one based on
+ * the user's question.
  *
- *   1. solve_quadratic(a, b, c)
- *        Solve ax^2 + bx + c = 0. Handle real AND complex roots.
- *
- *   2. fibonacci(n)
- *        Return the first n Fibonacci numbers. Make it efficient for
- *        large n (iterative, not naive recursion).
- *
- *   3. convert_currency(amount, from, to)
- *        Convert between two ISO 4217 currency codes using live rates.
- *        Free endpoint (no key):
- *          https://open.er-api.com/v6/latest/USD
- *
- * The run() loop at the bottom is already written — you only need to
- * fill in the three tool definitions.
- *
- * Test your work with the sample prompts at the bottom of the file.
+ *   1. solve_quadratic(a, b, c)     real + complex roots
+ *   2. fibonacci(n)                 first n numbers, BigInt for large n
+ *   3. convert_currency(amount, from, to)   live FX rates
  */
 import "dotenv/config";
 import { ChatOpenAI } from "@langchain/openai";
@@ -31,13 +18,25 @@ import {
 } from "@langchain/core/messages";
 import { z } from "zod";
 
-// TODO 1: Implement solve_quadratic.
-//   - If a === 0, return { error: "..." }.
-//   - If discriminant >= 0, return { root1, root2 } as numbers.
-//   - If discriminant < 0, return roots as strings like "1 + 2i".
 const solveQuadratic = tool(
   async ({ a, b, c }) => {
-    throw new Error("TODO: implement solve_quadratic");
+    if (a === 0) {
+      return { error: "Coefficient 'a' must be non-zero for a quadratic." };
+    }
+    const disc = b * b - 4 * a * c;
+    if (disc >= 0) {
+      const s = Math.sqrt(disc);
+      return {
+        root1: (-b + s) / (2 * a),
+        root2: (-b - s) / (2 * a),
+      };
+    }
+    const re = -b / (2 * a);
+    const im = Math.sqrt(-disc) / (2 * a);
+    return {
+      root1: `${re} + ${im}i`,
+      root2: `${re} - ${im}i`,
+    };
   },
   {
     name: "solve_quadratic",
@@ -47,12 +46,14 @@ const solveQuadratic = tool(
   }
 );
 
-// TODO 2: Implement fibonacci.
-//   - Return the first n numbers as strings (use BigInt internally so
-//     large n doesn't overflow).
 const fibonacci = tool(
   async ({ n }) => {
-    throw new Error("TODO: implement fibonacci");
+    if (n <= 0) return [];
+    const seq: bigint[] = [0n, 1n];
+    while (seq.length < n) {
+      seq.push(seq[seq.length - 1] + seq[seq.length - 2]);
+    }
+    return seq.slice(0, n).map(String);
   },
   {
     name: "fibonacci",
@@ -62,13 +63,26 @@ const fibonacci = tool(
   }
 );
 
-// TODO 3: Implement convert_currency.
-//   - Hit https://open.er-api.com/v6/latest/<FROM>.
-//   - Look up data.rates[<TO>].
-//   - Return { amount, from, to, converted, rate } or { error }.
 const convertCurrency = tool(
   async ({ amount, from, to }) => {
-    throw new Error("TODO: implement convert_currency");
+    const url = `https://open.er-api.com/v6/latest/${from.toUpperCase()}`;
+    const res = await fetch(url);
+    if (!res.ok) return { error: `HTTP ${res.status} from ${url}` };
+    const data = (await res.json()) as {
+      result?: string;
+      rates?: Record<string, number>;
+    };
+    const rate = data.rates?.[to.toUpperCase()];
+    if (rate === undefined) {
+      return { error: `Unknown currency code: ${to}` };
+    }
+    return {
+      amount,
+      from: from.toUpperCase(),
+      to: to.toUpperCase(),
+      converted: Math.round(amount * rate * 100) / 100,
+      rate,
+    };
   },
   {
     name: "convert_currency",
