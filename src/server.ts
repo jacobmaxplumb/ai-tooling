@@ -154,6 +154,8 @@ const sessions = new Map<string, BaseMessage[]>();
 const MAX_STEPS = 8;
 
 async function chat(sessionId: string, userMessage: string): Promise<string> {
+  console.log(`user: ${userMessage}`);
+
   const messages = sessions.get(sessionId) ?? [systemPrompt];
   messages.push(new HumanMessage(userMessage));
 
@@ -162,13 +164,17 @@ async function chat(sessionId: string, userMessage: string): Promise<string> {
     messages.push(aiMsg);
 
     if (!aiMsg.tool_calls?.length) {
+      const reply =
+        typeof aiMsg.content === "string"
+          ? aiMsg.content
+          : JSON.stringify(aiMsg.content);
+      console.log(`assistant: ${reply}`);
       sessions.set(sessionId, messages);
-      return typeof aiMsg.content === "string"
-        ? aiMsg.content
-        : JSON.stringify(aiMsg.content);
+      return reply;
     }
 
     for (const call of aiMsg.tool_calls) {
+      console.log(`tool: ${call.name}(${JSON.stringify(call.args)})`);
       const t = toolsByName[call.name];
       if (!t) {
         messages.push(
