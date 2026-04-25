@@ -74,7 +74,3 @@ public/
 
 Dockerfile, docker-compose.yml     Containerized chat app
 ```
-
-## The lecture itself
-
-Read [`LECTURE.md`](./LECTURE.md) for the full instructor script — concepts, code walkthroughs, and homework framing.
