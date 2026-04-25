@@ -1,7 +1,9 @@
 # Tool Calling — Lecture Notes
 
-> Instructor script for the ~35-minute class. Times are suggestions; adjust for Q&A.
+> Instructor script for the ~55-minute class. Times are suggestions; adjust for Q&A.
 > Students should be on the `start` branch with `npm install` already run and `.env` filled in.
+>
+> **Class shape:** ~30 min lecture/walkthrough → ~20 min hands-on breakout → ~5 min wrap-up demo.
 
 ---
 
@@ -9,16 +11,16 @@
 
 > "Today we stop talking *to* models and start having them do things.
 > By the end of class you'll know how the LLM tells your program to run a function,
-> how to wire that up in both vanilla OpenAI and LangChain, and you'll have built
-> three working tools yourself."
+> how to wire that up in both vanilla OpenAI and LangChain, and — in breakout rooms —
+> you'll have built three working tools yourself."
 
 **Why this matters.** Tool calling is the single feature that turns an LLM from a chat window into something you can build real products on. Every agent, every AI IDE, every "AI that books your flight" — it's all this one pattern repeated.
 
 ### The three things you'll walk away with
 
 1. A mental model of the tool-calling control loop (it's a loop, not a single call).
-2. Two working implementations — one in OpenAI's SDK, one in LangChain.
-3. Hands-on practice writing your own tools and seeing the model pick the right one.
+2. Two working implementations to study — one in OpenAI's SDK, one in LangChain.
+3. **Three tools you wrote yourself** in a live breakout, running against an actual LLM.
 
 ---
 
@@ -156,11 +158,17 @@ The `.describe()` strings on each field flow through to the JSON schema the mode
 
 ---
 
-## Part 4 — Hands-on Homework (3 min framing)
+## Part 4 — Breakout: Build your own tools (~20 min)
 
-Open [`src/03-homework.ts`](./src/03-homework.ts). The loop is already written; students only fill in the three tool bodies.
+This is where the lecture stops and the building starts. Open [`src/03-homework.ts`](./src/03-homework.ts) on screen so everyone sees what they're heading into. The loop at the bottom is already written; students only fill in the three tool bodies.
 
-### The three tools
+### Setup script (2 min before sending to rooms)
+
+> "I'm splitting you into rooms of 3–4. You have 15 minutes. Your goal is to get all three tools working in `src/03-homework.ts`. Run `npm run homework` to test — there's a sample prompt for each tool already at the bottom of the file. If you finish early, jump to the chat app: `npm run server`, open localhost:3000, and try mixing the tools in a single conversation. We'll come back together at [time] for a five-minute demo."
+
+Then drop them into rooms.
+
+### What they're building
 
 1. **`solve_quadratic(a, b, c)`** — `ax² + bx + c = 0`. Must handle complex roots.
    - *Tip:* if `a === 0`, return an error. If discriminant < 0, return roots as strings like `"1 + 2i"`.
@@ -169,40 +177,62 @@ Open [`src/03-homework.ts`](./src/03-homework.ts). The loop is already written; 
 3. **`convert_currency(amount, from, to)`** — live exchange rates from `open.er-api.com`. No API key needed.
    - *Tip:* `fetch` is globally available in Node 18+. Return a typed object, handle unknown currency codes.
 
-### How to test
+### Instructor playbook during breakout
 
-Each test prompt at the bottom of the file exercises one tool:
+**Visit each room briefly.** Don't solve the problem — ask one diagnostic question and leave.
 
-```bash
-npm run homework
-```
+**Common stuck points and the nudge that unblocks them:**
 
-### Good questions to ask afterward
+| Symptom                                           | Nudge                                                                  |
+| ------------------------------------------------- | ---------------------------------------------------------------------- |
+| "BigInt isn't working with `+`"                  | "Are both operands BigInt? Try `0n + 1n`."                             |
+| "fetch is undefined"                              | "Check your Node version: `node --version`. Needs 18+."                |
+| "The model isn't calling my tool"                 | "Read the description out loud. Does it actually describe what it does?" |
+| "I'm getting `Cannot read property 'rates'`"      | "Log the raw response. The free API uses `data.rates` only on success." |
+| "Math.sqrt returns NaN for the complex case"      | "Check the discriminant sign before calling sqrt — that's the branch." |
+| Tests pass but model gives weird answers          | "Try asking the question in lesson 1's style. Then improve descriptions." |
 
-- *What happens if you ask "What's the square root of 16?"* — The model won't call `solve_quadratic` (wrong shape). It'll answer directly. Good — tools should be narrowly scoped.
-- *What if you change the description of `fibonacci` to say "square numbers" by mistake?* — The model will call it for the wrong prompts. Descriptions are load-bearing.
-- *Could the model call two tools in one turn?* — Yes. Ask "Convert 100 USD to EUR and give me the first 5 Fibonacci numbers." That's why the loop iterates over `tool_calls`.
+**Watch the clock.** With ~3 min left, ping the rooms: *"Wrap up what you have, even if not all three tools are done. We're regrouping."*
 
-### Stretch goals (for the fast finishers)
+### Stretch goals for fast finishers
+
+If a room finishes early, give them one of these:
 
 - Add a `units` argument to `solve_quadratic` that returns results formatted as LaTeX.
 - Add caching to `convert_currency` so repeated prompts don't hit the API twice.
-- Add a fourth tool and see if the model picks the right one for ambiguous prompts.
+- Add a fourth tool of their own design, then bet on whether the model will pick it correctly.
 
-### Try it in the chat app
+### When everyone returns: the chat-app demo (~5 min)
 
-Once your tools are working, run the bundled chat server and ask the same questions in the browser:
+Bring the whole class back. Don't ask for volunteers to share screens — keep momentum and just demo from your machine.
 
 ```bash
 npm run server
-# open http://localhost:3000
+# open http://localhost:3000 on the projector
 ```
 
-Same agent loop, same tools, in a UI a non-technical user could use.
+Type a prompt that exercises all three new tools at once:
+
+> "Convert 100 USD to EUR, then give me that many Fibonacci numbers."
+
+Or try a multi-tool one with the weather tools too:
+
+> "I'm in Austin. What's the weather, what should I do, and convert 50 USD to EUR while you're at it."
+
+**Point out for the class:**
+
+- The model picks tools by name and description — *the same descriptions they just wrote.*
+- Multiple tool calls in a single turn (slide back into Part 1: "remember, this is a loop").
+- Conversation state — ask a follow-up like "now convert that to JPY" and it remembers the context.
+
+### Discussion questions if there's time
+
+- *What happens if you ask "What's the square root of 16?"* — The model won't call `solve_quadratic` (wrong shape). It'll answer directly. Good — tools should be narrowly scoped.
+- *What if you'd written the description of `fibonacci` as "square numbers"?* — The model would call it for the wrong prompts. Descriptions are load-bearing.
 
 ---
 
-## Part 5 — Close (1 min)
+## Part 5 — Close (~3 min)
 
 ### What to remember
 
@@ -215,6 +245,10 @@ Same agent loop, same tools, in a UI a non-technical user could use.
 - Read the [OpenAI tool calling docs](https://platform.openai.com/docs/guides/function-calling) for the full parameter set (tool_choice, parallel calls, structured outputs).
 - Try [LangGraph](https://langchain-ai.github.io/langgraphjs/) once you're building agents more complex than a simple loop — it gives you explicit state and persistence.
 - Build something you'd actually use. The weather example is a toy — you don't understand tool calling until you've shipped a tool *you care about*.
+
+### If they want the answer key
+
+The `end` branch on the same repo has working solutions to all three tools. Encourage them to compare *after* their own attempt, not before.
 
 ---
 
