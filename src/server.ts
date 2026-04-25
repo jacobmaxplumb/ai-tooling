@@ -8,9 +8,6 @@
  * Sessions live in memory: a Map<sessionId, messages>. Restarting the
  * server clears all conversations. This is fine for a classroom demo —
  * add Redis or a DB for anything real.
- *
- * Tracing still flows to LangSmith automatically when the LANGSMITH_*
- * env vars are set.
  */
 import "dotenv/config";
 import express from "express";

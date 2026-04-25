@@ -1,5 +1,5 @@
 /**
- * Lesson 4: Homework — reference solution.
+ * Lesson 3: Homework — reference solution.
  *
  * Three tools bound to an LLM. The model picks the right one based on
  * the user's question.

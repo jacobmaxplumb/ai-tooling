@@ -1,6 +1,6 @@
 # Tool Calling — Lecture Notes
 
-> Instructor script for the ~45-minute class. Times are suggestions; adjust for Q&A.
+> Instructor script for the ~35-minute class. Times are suggestions; adjust for Q&A.
 > Students should be on the `start` branch with `npm install` already run and `.env` filled in.
 
 ---
@@ -9,8 +9,8 @@
 
 > "Today we stop talking *to* models and start having them do things.
 > By the end of class you'll know how the LLM tells your program to run a function,
-> how to wire that up in both vanilla OpenAI and LangChain, and how to watch the
-> whole thing happen live in LangSmith."
+> how to wire that up in both vanilla OpenAI and LangChain, and you'll have built
+> three working tools yourself."
 
 **Why this matters.** Tool calling is the single feature that turns an LLM from a chat window into something you can build real products on. Every agent, every AI IDE, every "AI that books your flight" — it's all this one pattern repeated.
 
@@ -18,7 +18,7 @@
 
 1. A mental model of the tool-calling control loop (it's a loop, not a single call).
 2. Two working implementations — one in OpenAI's SDK, one in LangChain.
-3. A live trace in LangSmith you can click around in.
+3. Hands-on practice writing your own tools and seeing the model pick the right one.
 
 ---
 
@@ -130,7 +130,7 @@ Open [`src/02-langchain-tool-calling.ts`](./src/02-langchain-tool-calling.ts).
 
 ### The pitch
 
-> "LangChain is doing nothing magical. It's the same five steps. What it buys you is: no JSON-schema boilerplate, a cleaner tool-binding API, and — next lesson — free observability."
+> "LangChain is doing nothing magical. It's the same five steps. What it buys you is no JSON-schema boilerplate and a cleaner tool-binding API."
 
 ### The three things that got easier
 
@@ -156,62 +156,9 @@ The `.describe()` strings on each field flow through to the JSON schema the mode
 
 ---
 
-## Part 4 — Observability with LangSmith (10 min)
+## Part 4 — Hands-on Homework (3 min framing)
 
-Open [`src/03-langsmith-observability.ts`](./src/03-langsmith-observability.ts).
-
-### The setup is free
-
-> "Tracing is already on. Look at the `.env` file — `LANGSMITH_TRACING=true`, API key, project name. LangChain picks those up automatically. There's nothing to import, nothing to wrap, no decorators to add."
-
-Point out: you just wrote no observability code. That's the whole point.
-
-### What this file does differently
-
-Two tools instead of one, and a loop instead of a one-shot. Now the agent might:
-
-1. See the question "I'm in Austin today. What should I do?"
-2. Call `fetch_weather({ city: "Austin" })` → gets `{ condition: "sunny" }`
-3. Call `recommend_activity({ condition: "sunny" })` → gets `"Go for a run outside."`
-4. Write a final answer combining both.
-
-That's a three-step agent. Exactly the kind of thing that used to be invisible.
-
-### Run it and open LangSmith
-
-```bash
-npm run lesson:3
-```
-
-Then open [smith.langchain.com](https://smith.langchain.com), pick the project (default `ai-tooling-class`), and click the newest run.
-
-### What to point out in the LangSmith UI (do this live)
-
-- **The run tree on the left.** Top-level run, nested `ChatOpenAI` calls, nested tool runs. This is the call graph of your agent.
-- **Each LLM call shows you the FULL prompt.** This is the single most valuable debugging feature. You can see exactly what the model saw at every step.
-- **Token counts and latency per step.** Cost and performance visible without instrumenting anything.
-- **Tool input/output.** For each tool row you can see the exact arguments the model produced and the exact value you returned.
-- **Replaying a run.** You can tweak the prompt and re-run from the UI.
-
-### Answering the five questions from the source slide
-
-1. **What are the two rows in LangSmith related to tool calls?**
-   - A row for the **model's tool_call request** (an `AIMessage` with tool_calls).
-   - A row for the **actual tool execution** (a tool run whose output goes back into the conversation).
-2. **Which row represents actual execution?** The tool run — the second one. The AIMessage is just the *request*; nothing has run yet at that point.
-3. **How would you add this to an annotation queue / dataset?** In the UI, click the run → "Add to" → pick a dataset or annotation queue. For complex agents, you often want to save *the whole trace* so you can replay the full multi-step interaction, not just the final message.
-4. **Did the tool itself use an LLM?** In our case, no — `fetch_weather` is a dictionary lookup. But tools *can* wrap LLM calls (e.g., a "summarize document" tool). When they do, you get nested LLM rows under the tool row, and scoring starts to matter.
-5. **Why is scoring the tool irrelevant here?** Because our function is deterministic — given the same city, it always returns the same dict. There's nothing judgment-based to score. Scoring becomes relevant when the tool's output has quality variance: an LLM-backed summarizer, a retrieval tool that returns ranked documents, a classifier that might mislabel.
-
-### The teaching moment
-
-> "Debugging agents without observability is like debugging a distributed system without logs. You're guessing. With LangSmith open, you stop guessing."
-
----
-
-## Part 5 — Hands-on Homework (3 min framing)
-
-Open [`src/04-homework.ts`](./src/04-homework.ts). The loop is already written; students only fill in the three tool bodies.
+Open [`src/03-homework.ts`](./src/03-homework.ts). The loop is already written; students only fill in the three tool bodies.
 
 ### The three tools
 
@@ -242,21 +189,31 @@ npm run homework
 - Add caching to `convert_currency` so repeated prompts don't hit the API twice.
 - Add a fourth tool and see if the model picks the right one for ambiguous prompts.
 
+### Try it in the chat app
+
+Once your tools are working, run the bundled chat server and ask the same questions in the browser:
+
+```bash
+npm run server
+# open http://localhost:3000
+```
+
+Same agent loop, same tools, in a UI a non-technical user could use.
+
 ---
 
-## Part 6 — Close (1 min)
+## Part 5 — Close (1 min)
 
 ### What to remember
 
 1. Tool calling is a **loop**: model → tool → model → answer. If your agent does anything more than one hop, you're running this loop multiple times.
 2. The LLM **never runs your code**. It requests; you execute. That's a security feature, not a limitation.
 3. Good **descriptions** are the single biggest lever on agent quality. Write them like docs.
-4. Turn on LangSmith from day one. You will spend less time debugging and more time building.
 
 ### Where to go from here
 
 - Read the [OpenAI tool calling docs](https://platform.openai.com/docs/guides/function-calling) for the full parameter set (tool_choice, parallel calls, structured outputs).
-- Try [LangGraph](https://langchain-ai.github.io/langgraphjs/) once you're building agents more complex than the loop in lesson 3 — it gives you explicit state and persistence.
+- Try [LangGraph](https://langchain-ai.github.io/langgraphjs/) once you're building agents more complex than a simple loop — it gives you explicit state and persistence.
 - Build something you'd actually use. The weather example is a toy — you don't understand tool calling until you've shipped a tool *you care about*.
 
 ---
