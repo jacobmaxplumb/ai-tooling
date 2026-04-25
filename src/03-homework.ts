@@ -1,5 +1,5 @@
 /**
- * Lesson 4: Homework.
+ * Lesson 3: Homework.
  *
  * Build three tools and wire them to the LLM. The model should pick the
  * right one based on the user's question.
